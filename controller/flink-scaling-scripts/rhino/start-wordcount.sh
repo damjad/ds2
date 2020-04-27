@@ -7,9 +7,12 @@
 ### ### ###  		   ### ### ###
 
 ### paths configuration ###
-FLINK_BUILD_PATH="/path/to/flink-1.4.1-instrumented/flink-1.4.1/build-target/"
+#FLINK_BUILD_PATH="/path/to/flink-1.4.1-instrumented/flink-1.4.1/build-target/"
+PATH=/home/danish/.jenv/shims:$PATH
+
+FLINK_BUILD_PATH="/home/danish/FastWorkspace/BDMA/TUB/incremental-migration/build-target/"
 FLINK=$FLINK_BUILD_PATH$"bin/flink"
-JAR_PATH="/path/to/flink-examples-1.0-SNAPSHOT-jar-with-dependencies.jar"
+JAR_PATH="/home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/flink-examples/target/flink-examples-1.0-SNAPSHOT-jar-with-dependencies.jar"
 
 ### dataflow configuration ###
 QUERY_CLASS="ch.ethz.systems.strymon.ds2.flink.wordcount.StatefulWordCount"

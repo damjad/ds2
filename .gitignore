@@ -15,3 +15,6 @@ Cargo.lock
 target/
 
 .DS_Store
+/controller/.idea/
+/controller/running-examples/savepoint/
+/controller/running-examples/wordcount/metrics_repo/

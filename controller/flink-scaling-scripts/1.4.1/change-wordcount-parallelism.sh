@@ -7,10 +7,12 @@
 ### ### ###  		   ### ### ###
 
 ### paths configuration ###
-FLINK_BUILD_PATH="/path/to/flink-1.4.1-instrumented/flink-1.4.1/build-target/"
+PATH=/home/danish/.jenv/shims:$PATH
+
+FLINK_BUILD_PATH="/home/danish/FastWorkspace/BDMA/TUB/flink-1.4.1-src/flink-1.4.1/build-target/"
 FLINK=$FLINK_BUILD_PATH$"bin/flink"
-JAR_PATH="/path/to/flink-examples-1.0-SNAPSHOT-jar-with-dependencies.jar"
-readonly SAVEPOINT_PATH="/path/to/savepoints/"
+JAR_PATH="/home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/controller/running-examples/wordcount/1.4.1/flink-examples-1.0-SNAPSHOT-jar-with-dependencies.jar"
+readonly SAVEPOINT_PATH="/home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/controller/running-examples/savepoint/"
 
 ### dataflow configuration ###
 QUERY_CLASS="ch.ethz.systems.strymon.ds2.flink.wordcount.StatefulWordCount"
@@ -62,4 +64,4 @@ x=$(echo $savepointFile |tr -d '.')
 x=$(echo $x |tr -d '\n')
 
 
-nohup $FLINK run -d -s $SAVEPOINT_PATH$x --class $QUERY_CLASS $JAR_PATH --p1 $P_SOURCE --p2 $P1 --p3 $P2 & > job.out
+nohup $FLINK run -d -s $SAVEPOINT_PATH$x --class $QUERY_CLASS $JAR_PATH --p1 $P_SOURCE --p2 $P1 --p3 $P2 --policy.rates.path /home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/controller/running-examples/wordcount/metrics_repo/ & > job.out

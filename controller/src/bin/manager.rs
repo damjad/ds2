@@ -9,20 +9,25 @@
 extern crate config;
 extern crate ds2;
 extern crate notify;
+extern crate chrono;
 
 use self::notify::{RecommendedWatcher, Watcher, RecursiveMode, DebouncedEvent};
 use std::sync::mpsc::channel;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use std::ffi::{OsStr};
 use std::collections::{HashMap};
 use std::str::FromStr;
-use std::f64;
+use std::{f64, env};
+use std::fs::{self, ReadDir};
+use std::io::Error;
 use std::path::{PathBuf};
 use config::{Config, ConfigError, File};
 use std::process::Command;
 
+
 use ds2::dataflow::{Epoch, OperatorId, OperatorInstances, parse::*};
 use ds2::policy::scaling::*;
+use chrono::Local;
 
 /// Formats a dataflow configuration for Flink scripts
 fn format_flink_configuration(conf: &Vec<(OperatorId,OperatorInstances)>) -> String
@@ -52,6 +57,21 @@ fn consider_change(before: &Vec<(OperatorId,OperatorInstances)>, after: &Vec<(Op
     return false;
 }
 
+fn delete_dir_contents(read_dir_res: Result<ReadDir, Error>) {
+    if let Ok(dir) = read_dir_res {
+        for entry in dir {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+
+                if path.is_dir() {
+                    fs::remove_dir_all(path).expect("Failed to remove a dir");
+                } else {
+                    fs::remove_file(path).expect("Failed to remove a file");
+                }
+            };
+        }
+    };
+}
 /// Configures and runs a new scaling manager
 ///
 /// # Comments
@@ -59,9 +79,17 @@ fn consider_change(before: &Vec<(OperatorId,OperatorInstances)>, after: &Vec<(Op
 /// * Use `config/ds2.toml` to configure the scaling manager
 pub fn main() -> notify::Result<()>
 {
+
+    let args: Vec<String> = env::args().collect();
+    let conf_file_name = match args.len() {
+        1 => {"config/ds2.toml"},
+        _ => {&args[1]}
+    };
+    eprintln!("Configuration: {}", conf_file_name);
+
     // Includes paths to necessary files, scripts, the metrics repository, etc. as well as the scaling manager parameters
     let mut conf = Config::new();
-    match conf.merge(File::with_name("config/ds2.toml")) {
+    match conf.merge(File::with_name(conf_file_name)) {
         Err(e) => panic!("Error parsing config file: {:?}", e),
         _ => {}
     };
@@ -167,6 +195,8 @@ pub fn main() -> notify::Result<()>
     {
         "flink" =>
         {
+            delete_dir_contents(fs::read_dir(metrics_repo_path.as_path()));
+
             // Step 0: Load initial dataflow topology and initialize local state
             eprint!("Reading initial dataflow configuration...");
             let mut topo = create_flink_topology(topology_path.as_path());
@@ -176,6 +206,9 @@ pub fn main() -> notify::Result<()>
             let mut num_instances: OperatorInstances = conf.iter().map(|(_,c)| c).sum();
             eprintln!("Loaded initial physical topology with {} operator instances.", num_instances);
             let script_argument = format_flink_configuration(&conf);
+
+            eprintln!("{}", script_argument);
+
             // Step 1: Start Flink job
             let cmd_out = Command::new(start_script_path.as_os_str())
                                         .arg(script_argument)
@@ -196,7 +229,7 @@ pub fn main() -> notify::Result<()>
                 },
                 Err(e) => panic!("Error retrieving the Flink job id: {:?}", e)
             };
-            eprintln!("Submitted Flink job with id: {}", job_id);
+            eprintln!("{} - Submitted Flink job with id: {}", Local::now().format("%Y-%m-%dT%H:%M:%S"), job_id);
             loop
             { // Step 2: Start monitoring metrics repository
                 match rx.recv()
@@ -266,6 +299,8 @@ pub fn main() -> notify::Result<()>
                                     {
                                         eprintln!("Reconfiguring...");
                                         let script_argument = format_flink_configuration(&new_conf);
+
+                                        eprintln!("New Config: {}", script_argument);
                                         let cmd_out = Command::new(reconfiguration_script_path.as_os_str())
                                                                 .arg(job_id.as_str())
                                                                 .arg(script_argument)
@@ -286,7 +321,7 @@ pub fn main() -> notify::Result<()>
                                                         },
                                                         Err(e) => panic!("Error retrieving the new Flink job id: {:?}", e)
                                                     };
-                                        eprintln!("Submitted reconfigured job with id: {:?}", job_id);
+                                        eprintln!("{} - Submitted reconfigured job with id: {:?}", Local::now().format("%Y-%m-%dT%H:%M:%S"), job_id);
                                         // Update topology metadata with the new configuration
                                         topo.set_configuration(&new_conf);
                                         conf = new_conf;
@@ -294,16 +329,7 @@ pub fn main() -> notify::Result<()>
                                         evaluations = 0;
                                         // Remove old rates files
                                         // TODO: remove only files in the repo
-                                        let _ = Command::new("rm")
-                                                    .arg("-r")
-                                                    .arg(metrics_repo_path.to_str().unwrap())
-                                                    .output()
-                                                    .expect("Failed to remove log files.");
-                                        // Create a new rates folder
-                                        let _ = Command::new("mkdir")
-                                                    .arg(metrics_repo_path.to_str().unwrap())
-                                                    .output()
-                                                    .expect("Failed to create new rates folder.");
+                                        delete_dir_contents(fs::read_dir(metrics_repo_path.as_path()));
                                     }
                                     else
                                     { // No re-configuration was issued

@@ -327,6 +327,7 @@ pub fn main() -> notify::Result<()>
                                         conf = new_conf;
                                         epochs_since_reconfiguration = 0;
                                         evaluations = 0;
+                                        num_instances = conf.iter().map(|(_,c)| c).sum();
                                         // Remove old rates files
                                         // TODO: remove only files in the repo
                                         delete_dir_contents(fs::read_dir(metrics_repo_path.as_path()));

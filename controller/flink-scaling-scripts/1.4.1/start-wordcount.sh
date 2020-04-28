@@ -11,6 +11,7 @@ PATH=/home/danish/.jenv/shims:$PATH
 FLINK_BUILD_PATH="/home/danish/FastWorkspace/BDMA/TUB/flink-1.4.1-src/flink-1.4.1/build-target/"
 FLINK=$FLINK_BUILD_PATH$"bin/flink"
 JAR_PATH="/home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/controller/running-examples/wordcount/1.4.1/flink-examples-1.0-SNAPSHOT-jar-with-dependencies.jar"
+SOURCE_RATE_PATH="/home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/controller/running-examples/wordcount/source_rates/source-rates.csv"
 
 ### dataflow configuration ###
 QUERY_CLASS="ch.ethz.systems.strymon.ds2.flink.wordcount.StatefulWordCount"
@@ -46,4 +47,6 @@ do
     fi
 done
 
-nohup $FLINK run -d --class $QUERY_CLASS $JAR_PATH --p1 $P_SOURCE --p2 $P1 --p3 $P2 --policy.rates.path /home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/controller/running-examples/wordcount/metrics_repo/ & > job.out
+RATES=`cat $SOURCE_RATE_PATH | grep -Eo "[0-9]+"`
+
+nohup $FLINK run -d --class $QUERY_CLASS $JAR_PATH --p1 $P_SOURCE --p2 $P1 --p3 $P2 --source-rate $RATES --policy.rates.path /home/danish/FastWorkspace/BDMA/TUB/ds2/ds2/controller/running-examples/wordcount/metrics_repo/ & > job.out

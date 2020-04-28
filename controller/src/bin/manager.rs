@@ -260,7 +260,7 @@ pub fn main() -> notify::Result<()>
                                     eprintln!("All log files for epoch {} have been found.",epoch);
                                     // Retrieve true output rates of source operators (if any)
                                     eprintln!("Checking source operator rates...");
-                                    set_source_rates(source_rates_path.as_path(),&mut topo,false);
+                                    set_source_rates(source_rates_path.as_path(),&mut topo,true);
                                     eprintln!("Done.");
                                     let mut new_conf = match epochs_since_reconfiguration >= warm_up_time
                                     {
